@@ -1,222 +1,266 @@
-# JitViewer SDK 🚀
-> 🎯 一行代码集成，多格式文档在线预览解决方案
+<div align="center">
 
-[📖 在线文档](https://jitword.com/jit-viewer.html) • [🚀 在线演示](https://jitword.com/jit-viewer.html#demo) • [📦 GitHub](https://github.com/jitOffice/jit-viewer-sdk) • [💬 问题反馈](https://github.com/jitOffice/jit-viewer-sdk/issues)
+# 🔍 JitViewer
+
+**跨框架文档预览 SDK**
+
+一次集成，随处预览 —— 支持 Vue3、React、原生 HTML
+
+[![npm version](https://img.shields.io/npm/v/jit-viewer.svg)](https://www.npmjs.com/package/jit-viewer)
+[![npm downloads](https://img.shields.io/npm/dm/jit-viewer.svg)](https://www.npmjs.com/package/jit-viewer)
+[![License](https://img.shields.io/npm/l/jit-viewer.svg)](https://github.com/jitOffice/jit-viewer-sdk/blob/main/LICENSE)
+
+[在线演示](https://jitword.com/jit-viewer.html) · [文档](https://jitword.com/jit-viewer.html) · [GitHub](https://github.com/jitOffice/jit-viewer-sdk)
+
+</div>
 
 ---
 
 ## ✨ 特性
 
-- 📄 **多格式支持** - PDF、Word (DOCX)、Excel (XLSX)、PPT (PPTX)、Markdown、TXT
-- ⚡ **一行代码集成** - 只需引入 2 个文件，即可运行完整预览器
-- 🎨 **明暗主题** - 内置浅色/深色主题，支持动态切换
-- 📱 **移动端适配** - 完美支持手机、平板等移动设备
-- 🔧 **丰富 API** - 缩放、旋转、全屏、下载等完整控制接口
-- 🌐 **多种文件源** - 支持 URL、File 对象、Blob、ArrayBuffer
-- 🪶 **轻量高效** - 基于 Vue3 构建，性能优异
+- 📄 **多格式支持** - PDF、DOCX、XLSX、PPTX、OFD、TXT、Markdown
+- 🔧 **跨框架兼容** - Vue3、React、原生 HTML 无缝切换
+- 🎨 **内置工具栏** - 缩放、旋转、分页、打印、下载开箱即用
+- 🌓 **主题系统** - 浅色/深色主题，支持自定义配色
+- 🌐 **国际化** - 中文、英文内置，可扩展更多语言
+- 📦 **零依赖** - 打包所有依赖，无需额外安装
+- 🚀 **轻量高效** - 按需加载，性能优化
 
----
+## 📦 安装
+
+```bash
+# npm
+npm install jit-viewer
+
+# yarn
+yarn add jit-viewer
+
+# pnpm
+pnpm add jit-viewer
+```
 
 ## 🚀 快速开始
 
-### 1. 引入 SDK
+### Vue3
 
-```html
-<!-- 引入样式 -->
-<link rel="stylesheet" href=".cdn/jit-viewer.min.css">
+```vue
+<template>
+  <Viewer
+    :file="file"
+    theme="light"
+    :toolbar="true"
+    width="100%"
+    height="600px"
+    @ready="onReady"
+    @load="onLoad"
+    @error="onError"
+  />
+</template>
 
-<!-- 引入脚本 -->
-<script src=".cdn/jit-viewer.min.js"></script>
+<script setup>
+import { Viewer } from 'jit-viewer'
+import 'jit-viewer/style.css'
+
+const file = 'https://example.com/document.pdf'
+
+function onReady() { console.log('Viewer ready') }
+function onLoad() { console.log('File loaded') }
+function onError(error) { console.error('Error:', error) }
+</script>
 ```
 
-### 2. 创建容器
+### React
 
-```html
-<div id="viewer" style="width: 100%; height: 600px;"></div>
-```
+```tsx
+import { useEffect, useRef, useState } from 'react'
+import { createViewer, type ViewerInstance } from 'jit-viewer'
+import 'jit-viewer/style.css'
 
-### 3. 初始化预览器
+function DocumentViewer() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [viewer, setViewer] = useState<ViewerInstance | null>(null)
 
-```javascript
-const viewer = JitViewer.createViewer({
-  file: 'https://example.com/document.pdf',
-  filename: 'document.pdf',
-  toolbar: true,
-  theme: 'light'
-});
-
-viewer.mount('#viewer');
-```
-
-✅ **完成！** 现在你可以在页面上预览文档了。
-
----
-
-## 📖 详细文档
-
-访问 [在线文档](https://jitword.com/jit-viewer.html) 获取：
-
-- 📚 完整的 API 文档
-- 💡 丰富的使用示例
-- 🎮 可交互的在线演示
-- 🔧 自定义配置指南
-
----
-
-## 🎯 使用示例
-
-### 预览远程文件
-
-```javascript
-const viewer = JitViewer.createViewer({
-  file: 'https://example.com/report.pdf',
-  filename: '年度报告.pdf',
-  toolbar: true
-});
-viewer.mount('#viewer');
-```
-
-### 预览本地上传文件
-
-```javascript
-document.getElementById('fileInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  const viewer = JitViewer.createViewer({
-    file: file,
-    filename: file.name,
-    toolbar: true
-  });
-  
-  viewer.mount('#viewer');
-});
-```
-
-### 带认证头的文件
-
-```javascript
-const viewer = JitViewer.createViewer({
-  file: {
-    url: 'https://api.example.com/document',
-    headers: {
-      'Authorization': 'Bearer your-token'
+  useEffect(() => {
+    if (containerRef.current) {
+      const instance = createViewer({
+        target: containerRef.current,
+        theme: 'light',
+        toolbar: true
+      })
+      instance.mount()
+      setViewer(instance)
     }
-  },
-  filename: 'protected-doc.pdf'
-});
+    return () => viewer?.destroy()
+  }, [])
 
-viewer.mount('#viewer');
-```
-
-### 程序化控制
-
-```javascript
-const viewer = JitViewer.createViewer({
-  file: 'document.pdf',
-  renderOptions: {
-    zoom: 1.5,  // 初始缩放 150%
-    rotate: 0   // 初始旋转角度
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && viewer) {
+      viewer.setFile(file, file.name)
+    }
   }
-});
 
-viewer.mount('#viewer');
-
-// 放大
-viewer.zoom(2.0);
-
-// 旋转
-viewer.rotate(90);
-
-// 切换主题
-viewer.setTheme('dark');
-
-// 全屏
-viewer.fullscreen(true);
-
-// 下载文件
-viewer.download();
+  return (
+    <div>
+      <input type="file" onChange={handleFileChange} />
+      <div ref={containerRef} style={{ width: '100%', height: '600px' }} />
+    </div>
+  )
+}
 ```
 
----
+### 原生 HTML (IIFE)
 
-## 📋 支持的文件格式
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://unpkg.com/jit-viewer/dist/iife/jit-viewer.min.css">
+</head>
+<body>
+  <div id="viewer"></div>
+  <input type="file" id="fileInput">
+  
+  <script src="https://unpkg.com/jit-viewer/dist/iife/jit-viewer.min.js"></script>
+  <script>
+    const { createViewer } = JitViewer;
+    
+    const viewer = createViewer({
+      target: '#viewer',
+      theme: 'light',
+      toolbar: true
+    });
+    viewer.mount();
+    
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) viewer.setFile(file, file.name);
+    });
+  </script>
+</body>
+</html>
+```
 
-| 格式 | 扩展名 | MIME Type |
-|------|--------|-----------|
-| PDF | `.pdf` | `application/pdf` |
-| Word | `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
-| Excel | `.xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
-| PowerPoint | `.pptx` | `application/vnd.openxmlformats-officedocument.presentationml.presentation` |
-| Markdown | `.md` | `text/markdown` |
-| 文本 | `.txt` | `text/plain` |
+## 📖 API 文档
 
----
+### createViewer(options)
 
-## 🔧 API 概览
+创建预览器实例。
 
-### 配置选项
+#### Options
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `file` | `string \| File \| Blob \| ArrayBuffer` | - | 文件源 |
-| `filename` | `string` | - | 文件名 |
-| `toolbar` | `boolean \| object` | `true` | 工具栏配置 |
-| `theme` | `'light' \| 'dark'` | `'light'` | 主题 |
-| `width` | `string \| number` | `'100%'` | 宽度 |
-| `height` | `string \| number` | `'100%'` | 高度 |
-| `onReady` | `function` | - | 准备就绪回调 |
-| `onLoad` | `function` | - | 加载完成回调 |
-| `onError` | `function` | - | 错误回调 |
+| target | `HTMLElement \| string` | - | 挂载目标元素或选择器 |
+| file | `FileSource` | - | 文件源（URL、File对象、Blob、ArrayBuffer） |
+| type | `FileType` | 自动检测 | 文件类型 |
+| filename | `string` | - | 文件名 |
+| toolbar | `boolean \| ToolbarConfig` | `true` | 工具栏配置 |
+| theme | `'light' \| 'dark' \| ThemeConfig` | `'light'` | 主题 |
+| locale | `'zh-CN' \| 'en'` | `'zh-CN'` | 语言 |
+| width | `string \| number` | `'100%'` | 宽度 |
+| height | `string \| number` | `'100%'` | 高度 |
+| onReady | `() => void` | - | 准备就绪回调 |
+| onLoad | `() => void` | - | 文件加载完成回调 |
+| onError | `(error: Error) => void` | - | 错误回调 |
+| onDestroy | `() => void` | - | 销毁回调 |
 
-### 实例方法
+### ViewerInstance 方法
 
 | 方法 | 说明 |
 |------|------|
-| `mount(target)` | 挂载到指定元素 |
-| `zoom(scale)` | 设置缩放比例 (0.1 - 5) |
-| `rotate(degree)` | 设置旋转角度 |
-| `reset()` | 重置缩放和旋转 |
-| `fullscreen(enable)` | 切换全屏模式 |
-| `setTheme(theme)` | 切换主题 |
-| `download()` | 下载文件 |
+| `mount(target?)` | 挂载到指定元素 |
 | `destroy()` | 销毁实例 |
+| `setFile(file, filename?)` | 设置文件 |
+| `getFile()` | 获取当前文件信息 |
+| `zoom(scale)` | 设置缩放比例 |
+| `rotate(degree)` | 旋转角度 |
+| `reset()` | 重置缩放和旋转 |
+| `fullscreen(enable?)` | 全屏切换 |
+| `prevPage()` | 上一页 |
+| `nextPage()` | 下一页 |
+| `gotoPage(page)` | 跳转到指定页 |
+| `getPageInfo()` | 获取分页信息 |
+| `print()` | 打印 |
+| `download()` | 下载文件 |
+| `setTheme(theme)` | 设置主题 |
+| `setLocale(locale)` | 设置语言 |
+| `setToolbar(config)` | 设置工具栏 |
+| `on(event, handler)` | 监听事件 |
+| `off(event, handler)` | 取消监听 |
+| `getState()` | 获取当前状态 |
 
-📚 **查看完整 API 文档** → [https://jitword.com/jit-viewer.html#api](https://jitword.com/jit-viewer.html#api)
+### 支持的文件格式
+
+| 格式 | 扩展名 | MIME Type |
+|------|--------|----------|
+| PDF | `.pdf` | `application/pdf` |
+| Word | `.docx` | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
+| Excel | `.xlsx`, `.xls` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
+| PowerPoint | `.pptx`, `.ppt` | `application/vnd.openxmlformats-officedocument.presentationml.presentation` |
+| OFD | `.ofd` | `application/ofd` |
+| Text | `.txt` | `text/plain` |
+| Markdown | `.md`, `.markdown` | `text/markdown` |
+
+## 📁 项目结构
+
+```
+jit-viewer/
+├── packages/
+│   └── core/              # 核心 SDK
+│       ├── src/           # 源代码
+│       └── dist/          # 构建产物
+│           ├── index.js   # ESM 格式
+│           ├── index.cjs  # CommonJS 格式
+│           └── iife/      # IIFE 格式（浏览器直引）
+├── demo/
+│   ├── html-api-docs/     # HTML Demo + API 文档
+│   ├── vue3/              # Vue3 Demo
+│   └── react/             # React Demo
+└── docs/                  # VitePress 文档
+```
+
+## 🛠️ 开发
+
+```bash
+# 克隆项目
+git clone https://github.com/jitOffice/jit-viewer-sdk.git
+cd jit-viewer-sdk
+
+# 安装依赖
+pnpm install
+
+# 构建 SDK
+cd packages/core && pnpm build:all
+
+# 运行 Vue3 Demo
+cd demo/vue3 && pnpm dev
+
+# 运行 React Demo
+cd demo/react && pnpm dev
+
+# 运行 HTML Demo
+cd demo/html-api-docs && python3 -m http.server 3000
+```
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 如何联系
+
+wechat：cxzk_168
+
+## 📄 许可证
+
+[Apache-2.0](LICENSE) © JitOffice
 
 ---
 
-## 🖥️ 浏览器兼容性
+<div align="center">
 
-| 浏览器 | 版本 |
-|--------|------|
-| Chrome | ≥ 80 |
-| Firefox | ≥ 75 |
-| Safari | ≥ 13 |
-| Edge | ≥ 80 |
+**[⬆ 返回顶部](#-jitviewer)**
 
----
+Made with ❤️ by [JitOffice](https://github.com/jitOffice)
 
-## 🤝 参与贡献
-
-我们欢迎所有形式的贡献！
-
-- 🐛 [提交 Bug](https://github.com/jitOffice/jit-viewer-sdk/issues/new?template=bug_report.md)
-- 💡 [功能建议](https://github.com/jitOffice/jit-viewer-sdk/issues/new?template=feature_request.md)
-- 🔧 [提交代码](https://github.com/jitOffice/jit-viewer-sdk/pulls)
-
----
-
-## 🔗 相关链接
-
-- 🌐 [在线文档](https://jitword.com/jit-viewer.html)
-- 🎮 [在线演示](https://jitword.com/jit-viewer.html#demo)
-- 📦 [GitHub 仓库](https://github.com/jitOffice/jit-viewer-sdk)
-- 💬 [问题反馈](https://github.com/jitOffice/jit-viewer-sdk/issues)
-- 🏠 [官方网站](https://jitword.com)
-
----
-
-<p align="center">
-  如果这个项目对你有帮助，请给我们一颗 ⭐️ Star！
-</p>
+</div>
