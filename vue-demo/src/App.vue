@@ -1,8 +1,16 @@
 <template>
   <div class="app">
     <header class="header">
-      <h1>JitViewer 文档预览Demo</h1>
-      <p>支持 DOCX, XLSX, PDF, PPTX, TXT, Markdown 格式</p>
+      <div class="header-content">
+        <div class="header-title">
+          <h1>JitViewer 文档预览 Demo</h1>
+          <p>支持 DOCX, XLSX, PDF, PPTX, TXT, Markdown, OFD 格式</p>
+        </div>
+        <div class="header-actions">
+          <a href="https://jitword.com" target="_blank" class="btn-office">体验在线Office编辑</a>
+          <a href="https://know.jitword.com" target="_blank" class="btn-ai">AI知识库</a>
+        </div>
+      </div>
     </header>
     
     <main class="main">
@@ -12,7 +20,7 @@
           <input 
             type="file" 
             id="fileInput"
-            accept=".docx,.xlsx,.xls,.pdf,.pptx,.txt,.md"
+            accept=".docx,.xlsx,.xls,.pdf,.pptx,.ppt,.txt,.md,.ofd,.html,.htm"
             @change="handleFileChange"
           />
         </div>
@@ -34,6 +42,48 @@
         </div>
         
         <div class="panel">
+          <h3>配置选项</h3>
+          <div class="form-group">
+            <label>主题:</label>
+            <div class="btn-group">
+              <button 
+                :class="{ active: theme === 'light' }" 
+                @click="setTheme('light')"
+              >浅色</button>
+              <button 
+                :class="{ active: theme === 'dark' }" 
+                @click="setTheme('dark')"
+              >深色</button>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>语言:</label>
+            <div class="btn-group">
+              <button 
+                :class="{ active: locale === 'zh-CN' }" 
+                @click="setLocale('zh-CN')"
+              >中文</button>
+              <button 
+                :class="{ active: locale === 'en' }" 
+                @click="setLocale('en')"
+              >English</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="panel">
+          <h3>操作控制</h3>
+          <div class="btn-group vertical">
+            <button @click="zoomIn">放大</button>
+            <button @click="zoomOut">缩小</button>
+            <button @click="reset">重置</button>
+            <button @click="print">打印</button>
+            <button @click="download">下载</button>
+          </div>
+        </div>
+        
+        <div class="panel">
           <h3>示例文件</h3>
           <div class="demo-links">
             <button @click="loadDemo('docx')">DOCX示例</button>
@@ -44,235 +94,179 @@
       </div>
       
       <div class="content">
-        <div v-if="loading" class="loading">
-          <div class="spinner"></div>
-          <p>加载中...</p>
-        </div>
-        
-        <div v-else-if="error" class="error">
-          <p>{{ error }}</p>
-        </div>
-        
-        <div v-else-if="!fileSource" class="empty">
+        <div ref="viewerContainer" class="viewer-wrapper"></div>
+        <div v-if="!currentFile" class="empty-state">
           <p>请选择文件或输入URL开始预览</p>
-        </div>
-        
-        <!-- DOCX预览 -->
-        <VueOfficeDocx
-          v-else-if="fileType === 'docx'"
-          :src="fileSource"
-          class="viewer"
-          @rendered="onRendered"
-          @error="onError"
-        />
-        
-        <!-- Excel预览 -->
-        <VueOfficeExcel
-          v-else-if="fileType === 'xlsx' || fileType === 'xls'"
-          :src="fileSource"
-          class="viewer"
-          @rendered="onRendered"
-          @error="onError"
-        />
-        
-        <!-- PDF预览 -->
-        <VueOfficePdf
-          v-else-if="fileType === 'pdf'"
-          :src="fileSource"
-          class="viewer"
-          @rendered="onRendered"
-          @error="onError"
-        />
-        
-        <!-- PPTX预览 -->
-        <VueOfficePptx
-          v-else-if="fileType === 'pptx'"
-          :src="fileSource"
-          class="viewer"
-          @rendered="onRendered"
-          @error="onError"
-        />
-        
-        <!-- TXT预览 -->
-        <div v-else-if="fileType === 'txt'" class="text-viewer">
-          <pre>{{ textContent }}</pre>
-        </div>
-        
-        <!-- Markdown预览 -->
-        <div v-else-if="fileType === 'md'" class="markdown-viewer">
-          <div v-html="markdownContent"></div>
-        </div>
-        
-        <div v-else class="error">
-          <p>不支持的文件类型: {{ fileType }}</p>
+          <button class="btn-primary" @click="initViewer">初始化预览器</button>
         </div>
       </div>
     </main>
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+import { createViewer } from 'jit-viewer'
+import type { ViewerInstance, FileSource, Theme, Locale } from 'jit-viewer'
 
-// 引入vue-office组件
-import VueOfficeDocx from '@vue-office/docx'
-import VueOfficeExcel from '@vue-office/excel'
-import VueOfficePdf from '@vue-office/pdf'
-import VueOfficePptx from '@vue-office/pptx'
-
-// 引入样式（只有docx和excel有CSS文件）
-import '@vue-office/docx/lib/index.css'
-import '@vue-office/excel/lib/index.css'
+// Viewer 实例
+const viewerInstance = ref<ViewerInstance | null>(null)
+const viewerContainer = ref<HTMLElement | null>(null)
 
 // 状态
-const fileSource = ref(null)
-const fileType = ref('')
-const fileInfo = ref(null)
+const currentFile = ref<FileSource | null>(null)
+const fileInfo = ref<{ name: string; type: string } | null>(null)
 const urlInput = ref('')
-const loading = ref(false)
-const error = ref('')
-const textContent = ref('')
-const markdownContent = ref('')
+const theme = ref<Theme>('light')
+const locale = ref<Locale>('zh-CN')
 
 // 示例文件URL
-const demoFiles = {
-  docx: 'http://static.shanhuxueyuan.com/test6.docx',
-  pdf: 'http://static.shanhuxueyuan.com/test.pdf',
-  excel: 'http://static.shanhuxueyuan.com/demo/excel.xlsx'
+const demoFiles: Record<string, string> = {
+  docx: 'http://static.jitword.com/test6.docx',
+  pdf: 'http://static.jitword.com/test.pdf',
+  excel: 'http://static.jitword.com/demo/excel.xlsx'
 }
 
-// 获取文件扩展名
-function getExtension(filename) {
-  const match = filename.toLowerCase().match(/\.([a-z0-9]+)$/)
-  return match ? match[1] : ''
-}
-
-// 检测文件类型
-function detectType(filename) {
-  const ext = getExtension(filename)
-  const typeMap = {
-    'docx': 'docx',
-    'xlsx': 'xlsx',
-    'xls': 'xls',
-    'pdf': 'pdf',
-    'pptx': 'pptx',
-    'txt': 'txt',
-    'md': 'md',
-    'markdown': 'md'
+// 初始化 Viewer
+function initViewer() {
+  if (!viewerContainer.value) return
+  
+  // 如果已存在，先销毁
+  if (viewerInstance.value) {
+    viewerInstance.value.destroy()
   }
-  return typeMap[ext] || 'unknown'
+  
+  // 创建新的 Viewer 实例
+  viewerInstance.value = createViewer({
+    target: viewerContainer.value,
+    file: currentFile.value || undefined,
+    theme: theme.value,
+    locale: locale.value,
+    toolbar: true,
+    width: '100%',
+    height: '600px',
+    onReady: () => {
+      console.log('Viewer ready')
+    },
+    onLoad: () => {
+      console.log('File loaded')
+    },
+    onError: (error) => {
+      console.error('Load error:', error)
+      alert('加载失败: ' + error.message)
+    }
+  })
+  
+  viewerInstance.value.mount()
 }
 
 // 处理文件选择
-async function handleFileChange(e) {
-  const file = e.target.files[0]
+function handleFileChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
   if (!file) return
   
-  loading.value = true
-  error.value = ''
-  
+  currentFile.value = file
   fileInfo.value = {
     name: file.name,
     type: file.type || 'unknown'
   }
   
-  fileType.value = detectType(file.name)
-  
-  try {
-    // 对于txt和md文件，读取文本内容
-    if (fileType.value === 'txt' || fileType.value === 'md') {
-      const text = await file.text()
-      if (fileType.value === 'md') {
-        markdownContent.value = simpleMarkdownToHtml(text)
-      } else {
-        textContent.value = text
-      }
-      fileSource.value = 'loaded'
-    } else {
-      // 对于office文件，使用Blob URL
-      const blobUrl = URL.createObjectURL(file)
-      fileSource.value = blobUrl
-    }
-  } catch (err) {
-    error.value = '文件加载失败: ' + err.message
-  }
-  
-  loading.value = false
+  // 重新初始化以加载新文件
+  setTimeout(initViewer, 0)
 }
 
 // 加载URL
-async function loadUrl() {
+function loadUrl() {
   if (!urlInput.value.trim()) {
-    error.value = '请输入URL'
+    alert('请输入URL')
     return
   }
-  
-  loading.value = true
-  error.value = ''
   
   const url = urlInput.value.trim()
   const filename = url.split('/').pop() || 'unknown'
   
+  currentFile.value = url
   fileInfo.value = {
     name: filename,
     type: 'url'
   }
   
-  fileType.value = detectType(filename)
-  fileSource.value = url
-  
-  loading.value = false
+  // 重新初始化以加载新文件
+  setTimeout(initViewer, 0)
 }
 
 // 加载示例文件
-function loadDemo(type) {
-  loading.value = true
-  error.value = ''
-  
+function loadDemo(type: string) {
   const url = demoFiles[type]
   if (!url) {
-    error.value = '没有该类型的示例文件'
+    alert('没有该类型的示例文件')
     return
   }
   
+  currentFile.value = url
   fileInfo.value = {
     name: `示例${type.toUpperCase()}文件`,
     type: 'demo'
   }
   
-  fileType.value = type
-  fileSource.value = url
-  
-  loading.value = false
+  // 重新初始化以加载新文件
+  setTimeout(initViewer, 0)
 }
 
-// 渲染完成
-function onRendered() {
-  loading.value = false
-  console.log('文件渲染完成')
+// 设置主题
+function setTheme(t: Theme) {
+  theme.value = t
+  viewerInstance.value?.setTheme(t)
 }
 
-// 渲染错误
-function onError(err) {
-  loading.value = false
-  error.value = '渲染失败: ' + (err.message || err)
-  console.error('渲染错误:', err)
+// 设置语言
+function setLocale(l: Locale) {
+  locale.value = l
+  viewerInstance.value?.setLocale(l)
 }
 
-// 简单的Markdown转HTML
-function simpleMarkdownToHtml(md) {
-  if (!md) return ''
-  return md
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/\n/g, '<br />')
+// 放大
+function zoomIn() {
+  const state = viewerInstance.value?.getState()
+  if (state) {
+    viewerInstance.value?.zoom(state.zoom + 0.1)
+  }
 }
+
+// 缩小
+function zoomOut() {
+  const state = viewerInstance.value?.getState()
+  if (state) {
+    viewerInstance.value?.zoom(state.zoom - 0.1)
+  }
+}
+
+// 重置
+function reset() {
+  viewerInstance.value?.reset()
+}
+
+// 打印
+function print() {
+  viewerInstance.value?.print()
+}
+
+// 下载
+async function download() {
+  await viewerInstance.value?.download()
+}
+
+// 生命周期
+onMounted(() => {
+  // 可以在这里自动初始化
+})
+
+onUnmounted(() => {
+  if (viewerInstance.value) {
+    viewerInstance.value.destroy()
+  }
+})
 </script>
 
 <style>
@@ -295,7 +289,18 @@ body {
   background: #1677ff;
   color: white;
   padding: 20px;
-  text-align: center;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-title {
+  text-align: left;
 }
 
 .header h1 {
@@ -305,6 +310,51 @@ body {
 .header p {
   opacity: 0.9;
   font-size: 14px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.header-actions .btn-office {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: #ffffff;
+  color: #1677ff;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.header-actions .btn-office:hover {
+  background: #f0f7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.header-actions .btn-ai {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.3);
+}
+
+.header-actions .btn-ai:hover {
+  background: linear-gradient(135deg, #4096ff 0%, #69b1ff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4);
 }
 
 .main {
@@ -359,6 +409,51 @@ body {
   background: #4096ff;
 }
 
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-group button {
+  flex: 1;
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-group button:hover {
+  border-color: #1677ff;
+  color: #1677ff;
+}
+
+.btn-group button.active {
+  background: #1677ff;
+  color: white;
+  border-color: #1677ff;
+}
+
+.btn-group.vertical {
+  flex-direction: column;
+}
+
+.btn-group.vertical button {
+  width: 100%;
+}
+
 .demo-links {
   display: flex;
   flex-direction: column;
@@ -384,190 +479,29 @@ body {
   min-height: 600px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   overflow: hidden;
+  position: relative;
 }
 
-.viewer {
+.viewer-wrapper {
   width: 100%;
   height: 600px;
-  overflow: auto;
 }
 
-.loading,
-.error,
-.empty {
+.empty-state {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 600px;
   color: #999;
+  gap: 16px;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f0f0f0;
-  border-top-color: #1677ff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 16px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.error {
-  color: #ff4d4f;
-}
-
-.text-viewer,
-.markdown-viewer {
-  padding: 40px;
-  height: 600px;
-  overflow: auto;
-  background: white;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.text-viewer pre {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #333;
-}
-
-/* Markdown 样式优化 */
-.markdown-viewer {
-  line-height: 1.8;
-  color: #24292e;
+.empty-state p {
   font-size: 16px;
-}
-
-.markdown-viewer h1 { 
-  font-size: 2em; 
-  margin: 0.67em 0;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid #eaecef;
-  font-weight: 600;
-}
-.markdown-viewer h2 { 
-  font-size: 1.5em; 
-  margin: 0.75em 0;
-  padding-bottom: 0.3em;
-  border-bottom: 1px solid #eaecef;
-  font-weight: 600;
-}
-.markdown-viewer h3 { 
-  font-size: 1.25em; 
-  margin: 0.83em 0;
-  font-weight: 600;
-}
-.markdown-viewer h4 { 
-  font-size: 1em; 
-  margin: 1em 0;
-  font-weight: 600;
-}
-.markdown-viewer h5 { 
-  font-size: 0.875em; 
-  margin: 1.17em 0;
-  font-weight: 600;
-}
-.markdown-viewer h6 { 
-  font-size: 0.85em; 
-  margin: 1.33em 0;
-  font-weight: 600;
-  color: #6a737d;
-}
-
-.markdown-viewer p {
-  margin: 0 0 1em 0;
-}
-
-.markdown-viewer code {
-  background: rgba(27, 31, 35, 0.05);
-  padding: 0.2em 0.4em;
-  border-radius: 3px;
-  font-family: 'SFMono-Regular', 'Consolas', 'Monaco', monospace;
-  font-size: 85%;
-}
-
-.markdown-viewer pre {
-  background: #f6f8fa;
-  padding: 16px;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 0 0 16px 0;
-}
-
-.markdown-viewer pre code {
-  background: transparent;
-  padding: 0;
-  font-size: 100%;
-}
-
-.markdown-viewer a {
-  color: #0366d6;
-  text-decoration: none;
-}
-
-.markdown-viewer a:hover {
-  text-decoration: underline;
-}
-
-.markdown-viewer ul, 
-.markdown-viewer ol {
-  padding-left: 2em;
-  margin: 0 0 16px 0;
-}
-
-.markdown-viewer li {
-  margin: 0.25em 0;
-}
-
-.markdown-viewer blockquote {
-  border-left: 4px solid #dfe2e5;
-  padding: 0 1em;
-  margin: 0 0 16px 0;
-  color: #6a737d;
-}
-
-.markdown-viewer blockquote p {
-  margin: 0;
-}
-
-.markdown-viewer hr {
-  border: none;
-  border-top: 1px solid #e1e4e8;
-  margin: 24px 0;
-}
-
-.markdown-viewer table {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 0 0 16px 0;
-}
-
-.markdown-viewer th,
-.markdown-viewer td {
-  border: 1px solid #dfe2e5;
-  padding: 6px 13px;
-}
-
-.markdown-viewer th {
-  background: #f6f8fa;
-  font-weight: 600;
-}
-
-.markdown-viewer tr:nth-child(2n) {
-  background: #f6f8fa;
-}
-
-.markdown-viewer img {
-  max-width: 100%;
-  box-sizing: content-box;
 }
 </style>

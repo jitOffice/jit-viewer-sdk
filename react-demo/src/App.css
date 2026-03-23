@@ -16,8 +16,19 @@ body {
 .header {
   background: white;
   padding: 20px;
-  text-align: center;
   border-bottom: 1px solid #e8e8e8;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-title {
+  text-align: left;
 }
 
 .header h1 {
@@ -28,6 +39,51 @@ body {
 .header p {
   margin: 0;
   color: #666;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.header-actions .btn-office {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: #1677ff;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.3);
+}
+
+.header-actions .btn-office:hover {
+  background: #4096ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4);
+}
+
+.header-actions .btn-ai {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.3);
+}
+
+.header-actions .btn-ai:hover {
+  background: linear-gradient(135deg, #4096ff 0%, #69b1ff 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.4);
 }
 
 .main {

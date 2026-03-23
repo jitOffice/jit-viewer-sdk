@@ -34,7 +34,19 @@
       background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
       color: white;
       padding: 60px 20px;
-      text-align: center;
+      position: relative;
+    }
+    
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header-title {
+      text-align: left;
     }
     
     .header h1 {
@@ -47,7 +59,6 @@
       font-size: 18px;
       opacity: 0.9;
       max-width: 600px;
-      margin: 0 auto;
     }
     
     .header .version {
@@ -57,6 +68,51 @@
       border-radius: 20px;
       font-size: 14px;
       margin-top: 16px;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .header-actions .btn-office {
+      display: inline-flex;
+      align-items: center;
+      padding: 12px 24px;
+      background: #ffffff;
+      color: var(--primary);
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .header-actions .btn-office:hover {
+      background: #f0f7ff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+    
+    .header-actions .btn-ai {
+      display: inline-flex;
+      align-items: center;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s;
+      box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+    }
+    
+    .header-actions .btn-ai:hover {
+      background: linear-gradient(135deg, #4096ff 0%, #69b1ff 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(22, 119, 255, 0.4);
     }
     
     /* Navigation */
@@ -377,9 +433,17 @@
 <body>
   <!-- Header -->
   <header class="header">
-    <h1>JitViewer SDK</h1>
-    <p>基于 Vue3 的跨框架文档预览 SDK，支持 PDF、DOCX、Excel、PPTX、TXT、Markdown 等多种格式</p>
-    <span class="version">v1.0.0</span>
+    <div class="header-content">
+      <div class="header-title">
+        <h1>JitViewer SDK</h1>
+        <p>基于 Vue3 的跨框架文档预览 SDK，支持 PDF、DOCX、Excel、PPTX、TXT、Markdown 等多种格式</p>
+        <span class="version">v1.0.0</span>
+      </div>
+      <div class="header-actions">
+        <a href="https://jitword.com" target="_blank" class="btn-office">体验在线Office编辑</a>
+        <a href="https://know.jitword.com" target="_blank" class="btn-ai">AI知识库</a>
+      </div>
+    </div>
   </header>
   
   <!-- Navigation -->
@@ -807,8 +871,8 @@ const defaultItems = [
   </script>
   
   <!-- 引入 JitViewer SDK (IIFE 版本，包含所有依赖) -->
-  <link rel="stylesheet" href="http://localhost:3007/iife/jit-viewer.min.css">
-  <script src="http://localhost:3007/iife/jit-viewer.min.js"></script>
+  <link rel="stylesheet" href="http://localhost:49378/iife/jit-viewer.min.css">
+  <script src="http://localhost:49378/iife/jit-viewer.min.js"></script>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>

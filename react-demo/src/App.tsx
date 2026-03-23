@@ -1,31 +1,36 @@
-import React, { useRef, useState, useCallback } from 'react'
-import { createViewer } from '@jit-viewer/core'
-import type { ViewerInstance, FileSource, Theme, Locale } from '@jit-viewer/core'
+import React, { useRef, useState, useCallback, useEffect } from 'react'
+import { createViewer } from 'jit-viewer'
+import type { ViewerInstance, FileSource, Theme, Locale } from 'jit-viewer'
+import 'jit-viewer/style.css'
 import './App.css'
 
 function App() {
   const viewerRef = useRef<ViewerInstance | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const [currentFile, setCurrentFile] = useState<FileSource>()
+  const [currentFile, setCurrentFile] = useState<FileSource | null>(null)
   const [urlInput, setUrlInput] = useState('')
   const [theme, setTheme] = useState<Theme>('light')
   const [locale, setLocale] = useState<Locale>('zh-CN')
   const [toolbar, setToolbar] = useState(true)
   const [fileInfo, setFileInfo] = useState<{ filename: string; type: string } | null>(null)
+  const [viewerInitialized, setViewerInitialized] = useState(false)
 
-  // 初始化Viewer
-  const initViewer = useCallback(() => {
+  // 初始化 Viewer
+  const initViewer = useCallback((file?: FileSource) => {
     if (!containerRef.current) return
 
     // 如果已存在，先销毁
     if (viewerRef.current) {
       viewerRef.current.destroy()
+      viewerRef.current = null
     }
 
-    // 创建新的Viewer实例
+    const fileToLoad = file || currentFile
+
+    // 创建新的 Viewer 实例
     viewerRef.current = createViewer({
       target: containerRef.current,
-      file: currentFile,
+      file: fileToLoad || undefined,
       theme,
       locale,
       toolbar,
@@ -33,6 +38,7 @@ function App() {
       height: '600px',
       onReady: () => {
         console.log('Viewer ready')
+        setViewerInitialized(true)
       },
       onLoad: () => {
         console.log('File loaded')
@@ -46,32 +52,50 @@ function App() {
     viewerRef.current.mount()
   }, [currentFile, theme, locale, toolbar])
 
+  // 当文件变化时自动初始化
+  useEffect(() => {
+    if (currentFile && containerRef.current) {
+      initViewer(currentFile)
+    }
+  }, [currentFile, initViewer])
+
+  // 组件卸载时销毁 viewer
+  useEffect(() => {
+    return () => {
+      if (viewerRef.current) {
+        viewerRef.current.destroy()
+        viewerRef.current = null
+      }
+    }
+  }, [])
+
   // 文件选择处理
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setCurrentFile(file)
       setFileInfo({
         filename: file.name,
         type: file.type || 'unknown'
       })
-      // 重新初始化以加载新文件
-      setTimeout(initViewer, 0)
+      setCurrentFile(file)
     }
   }
 
   // 加载URL
   const handleLoadUrl = () => {
-    if (urlInput.trim()) {
-      setCurrentFile(urlInput.trim())
-      const filename = urlInput.split('/').pop() || 'unknown'
-      setFileInfo({
-        filename,
-        type: 'url'
-      })
-      // 重新初始化以加载新文件
-      setTimeout(initViewer, 0)
+    if (!urlInput.trim()) {
+      alert('请输入URL')
+      return
     }
+    
+    const url = urlInput.trim()
+    const filename = url.split('/').pop() || 'unknown'
+    
+    setFileInfo({
+      filename,
+      type: 'url'
+    })
+    setCurrentFile(url)
   }
 
   // 设置主题
@@ -127,8 +151,16 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>JitViewer React Demo</h1>
-        <p>基于React的文档预览SDK演示</p>
+        <div className="header-content">
+          <div className="header-title">
+            <h1>JitViewer React Demo</h1>
+            <p>支持 DOCX, XLSX, PDF, PPTX, TXT, Markdown, OFD 格式</p>
+          </div>
+          <div className="header-actions">
+            <a href="https://jitword.com" target="_blank" rel="noopener noreferrer" className="btn-office">体验在线Office编辑</a>
+            <a href="https://know.jitword.com" target="_blank" rel="noopener noreferrer" className="btn-ai">AI知识库</a>
+          </div>
+        </div>
       </header>
 
       <main className="main">
@@ -140,7 +172,7 @@ function App() {
               <label>选择文件:</label>
               <input
                 type="file"
-                accept=".docx,.xlsx,.pdf,.pptx,.txt,.md"
+                accept=".docx,.xlsx,.xls,.pdf,.pptx,.ppt,.txt,.md,.ofd,.html,.htm"
                 onChange={handleFileChange}
               />
             </div>
@@ -241,12 +273,9 @@ function App() {
 
         <div className="content">
           <div ref={containerRef} className="viewer-wrapper" />
-          {!currentFile && (
+          {!viewerInitialized && !currentFile && (
             <div className="empty-state">
               <p>请选择文件或输入URL开始预览</p>
-              <button className="btn-primary" onClick={initViewer}>
-                初始化预览器
-              </button>
             </div>
           )}
         </div>
