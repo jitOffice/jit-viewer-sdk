@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "jit-viewer": "^1.0.7",
+    "jit-viewer": "workspace:*",
     "vue": "^3.4.0"
   },
   "devDependencies": {

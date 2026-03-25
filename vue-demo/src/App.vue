@@ -4,7 +4,7 @@
       <div class="header-content">
         <div class="header-title">
           <h1>JitViewer 文档预览 Demo</h1>
-          <p>支持 DOCX, XLSX, PDF, PPTX, TXT, Markdown, OFD 格式</p>
+          <p>支持 DOCX, XLSX, PDF, PPTX, TXT, Markdown, OFD, HTML, 图片格式</p>
         </div>
         <div class="header-actions">
           <a href="https://jitword.com" target="_blank" class="btn-office">体验在线Office编辑</a>
@@ -20,7 +20,7 @@
           <input 
             type="file" 
             id="fileInput"
-            accept=".docx,.xlsx,.xls,.pdf,.pptx,.ppt,.txt,.md,.ofd,.html,.htm"
+            accept=".docx,.xlsx,.xls,.pdf,.pptx,.ppt,.txt,.md,.ofd,.html,.htm,.jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff,.tif,.ico"
             @change="handleFileChange"
           />
         </div>
@@ -68,6 +68,32 @@
                 :class="{ active: locale === 'en' }" 
                 @click="setLocale('en')"
               >English</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>PDF 渲染方式:</label>
+            <div class="btn-group">
+              <button
+                :class="{ active: pdfRenderMode === 'inset' }"
+                @click="setPdfRender('inset')"
+              >内置渲染</button>
+              <button
+                :class="{ active: pdfRenderMode === 'native' }"
+                @click="setPdfRender('native')"
+              >浏览器原生</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>工具栏:</label>
+            <div class="btn-group">
+              <button
+                :class="{ active: showToolbar }"
+                @click="toggleToolbar(true)"
+              >显示</button>
+              <button
+                :class="{ active: !showToolbar }"
+                @click="toggleToolbar(false)"
+              >隐藏</button>
             </div>
           </div>
         </div>
@@ -119,6 +145,8 @@ const fileInfo = ref<{ name: string; type: string } | null>(null)
 const urlInput = ref('')
 const theme = ref<Theme>('light')
 const locale = ref<Locale>('zh-CN')
+const pdfRenderMode = ref<'native' | 'inset'>('inset')
+const showToolbar = ref(true)
 
 // 示例文件URL
 const demoFiles: Record<string, string> = {
@@ -142,7 +170,8 @@ function initViewer() {
     file: currentFile.value || undefined,
     theme: theme.value,
     locale: locale.value,
-    toolbar: true,
+    pdfRender: pdfRenderMode.value,
+    toolbar: showToolbar.value,
     width: '100%',
     height: '600px',
     onReady: () => {
@@ -224,6 +253,18 @@ function setTheme(t: Theme) {
 function setLocale(l: Locale) {
   locale.value = l
   viewerInstance.value?.setLocale(l)
+}
+
+function setPdfRender(mode: 'native' | 'inset') {
+  pdfRenderMode.value = mode
+  // 重新初始化以应用新的渲染方式
+  setTimeout(initViewer, 0)
+}
+
+function toggleToolbar(show: boolean) {
+  showToolbar.value = show
+  // 重新初始化以应用新的工具栏设置
+  setTimeout(initViewer, 0)
 }
 
 // 放大
